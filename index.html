@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알라딘 중고서적 검색기</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        .input-group input {
+            width: 80%;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .buttons {
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        .btn-search {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-save {
+            background-color: #2196F3;
+            color: white;
+        }
+        .btn-load {
+            background-color: #ff9800;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .loading {
+            display: none;
+            color: #555;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .best-store-item {
+            margin-bottom: 5px;
+        }
+        .price {
+            color: #e91e63;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>알라딘 중고서적 검색기</h1>
+    <p>검색하고 싶은 책을 최대 5권까지 입력하세요.</p>
+    
+    <div id="inputs-container">
+        <!-- 5 input fields -->
+        <div class="input-group"><input type="text" id="book1" placeholder="1. 책 제목 입력"></div>
+        <div class="input-group"><input type="text" id="book2" placeholder="2. 책 제목 입력"></div>
+        <div class="input-group"><input type="text" id="book3" placeholder="3. 책 제목 입력"></div>
+        <div class="input-group"><input type="text" id="book4" placeholder="4. 책 제목 입력"></div>
+        <div class="input-group"><input type="text" id="book5" placeholder="5. 책 제목 입력"></div>
+    </div>
+
+    <div class="buttons">
+        <button class="btn-save" onclick="saveBooks()">목록 저장</button>
+        <button class="btn-load" onclick="loadBooks()">목록 불러오기</button>
+        <button class="btn-search" onclick="searchBooks()">검색 시작</button>
+    </div>
+
+    <div id="loading" class="loading">검색 중입니다. 잠시만 기다려주세요...</div>
+
+    <table id="resultTable" style="display:none;">
+        <thead>
+            <tr>
+                <th style="width: 20%;">책 이름</th>
+                <th style="width: 25%;">최상 등급 서점 (가격)</th>
+                <th style="width: 25%;">상 등급 서점 (가격)</th>
+                <th style="width: 30%;">그 외 보유 서점</th>
+            </tr>
+        </thead>
+        <tbody id="resultBody">
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function saveBooks() {
+        const books = [];
+        for (let i = 1; i <= 5; i++) {
+            books.push(document.getElementById('book' + i).value);
+        }
+        localStorage.setItem('savedAladinBooks', JSON.stringify(books));
+        alert('목록이 저장되었습니다.');
+    }
+
+    function loadBooks() {
+        const saved = localStorage.getItem('savedAladinBooks');
+        if (saved) {
+            const books = JSON.parse(saved);
+            for (let i = 1; i <= 5; i++) {
+                if (books[i-1] !== undefined) {
+                    document.getElementById('book' + i).value = books[i-1];
+                }
+            }
+        } else {
+            alert('저장된 목록이 없습니다.');
+        }
+    }
+
+    // Load automatically when page loads
+    window.onload = function() {
+        if (localStorage.getItem('savedAladinBooks')) {
+            loadBooks();
+        }
+    };
+
+    async function searchBooks() {
+        const books = [];
+        for (let i = 1; i <= 5; i++) {
+            const val = document.getElementById('book' + i).value.trim();
+            if (val) books.push(val);
+        }
+
+        if (books.length === 0) {
+            alert('검색할 책을 최소 1권 입력해주세요.');
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('resultTable').style.display = 'none';
+        document.getElementById('resultBody').innerHTML = '';
+
+        try {
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ books: books })
+            });
+
+            if (!response.ok) {
+                throw new Error('서버 응답 오류');
+            }
+
+            const data = await response.json();
+            renderResults(data);
+        } catch (error) {
+            alert('검색 중 오류가 발생했습니다: ' + error.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function renderResults(data) {
+        const tbody = document.getElementById('resultBody');
+        
+        // Calculate store frequencies (number of distinct books each store has in '최상' or '상')
+        const storeCounts = {};
+        data.forEach(item => {
+            if (item.error) return;
+            const storesForThisBook = new Set();
+            
+            if (item.bestStores) {
+                item.bestStores.forEach(s => storesForThisBook.add(s.store));
+            }
+            if (item.goodStores) {
+                item.goodStores.forEach(s => storesForThisBook.add(s.store));
+            }
+            
+            storesForThisBook.forEach(store => {
+                storeCounts[store] = (storeCounts[store] || 0) + 1;
+            });
+        });
+        
+        const topStores = Object.keys(storeCounts)
+            .filter(store => storeCounts[store] > 1)
+            .sort((a, b) => storeCounts[b] - storeCounts[a]);
+            
+        // Distinct color palette for easy visual grouping
+        const palette = [
+            '#ffeb3b', // Yellow
+            '#ffcc80', // Light Orange
+            '#a5d6a7', // Light Green
+            '#90caf9', // Light Blue
+            '#f48fb1', // Pink
+            '#ce93d8', // Purple
+            '#80deea', // Cyan
+            '#e0e0e0', // Gray
+            '#c5e1a5', // Lime
+            '#ffab91'  // Deep Orange
+        ];
+        
+        const storeColors = {};
+        topStores.forEach((store, index) => {
+            storeColors[store] = palette[index % palette.length];
+        });
+        
+        data.forEach(item => {
+            const tr = document.createElement('tr');
+            
+            // 책 이름
+            const tdName = document.createElement('td');
+            if (item.error) {
+                tdName.textContent = item.bookName;
+                const tdError = document.createElement('td');
+                tdError.colSpan = 3;
+                tdError.textContent = item.error;
+                tr.appendChild(tdName);
+                tr.appendChild(tdError);
+                tbody.appendChild(tr);
+                return;
+            }
+            tdName.textContent = item.bookName;
+            
+            const createStoreTd = (stores) => {
+                const td = document.createElement('td');
+                if (stores && stores.length > 0) {
+                    stores.forEach(store => {
+                        const div = document.createElement('div');
+                        div.className = 'best-store-item';
+                        if (storeColors[store.store]) {
+                            div.style.backgroundColor = storeColors[store.store];
+                            div.style.padding = '2px';
+                            div.style.borderRadius = '3px';
+                        }
+                        div.innerHTML = `${store.store} (<span class="price">${store.price}</span>${store.count > 1 ? ' ' + store.count + '권' : ''})`;
+                        td.appendChild(div);
+                    });
+                } else {
+                    td.textContent = '없음';
+                    td.style.color = '#999';
+                }
+                return td;
+            };
+            
+            // 최상 등급 서점
+            const tdBest = createStoreTd(item.bestStores);
+            // 상 등급 서점
+            const tdGood = createStoreTd(item.goodStores);
+            
+            // 그 외 보유 서점
+            const tdOther = document.createElement('td');
+            if (item.otherStores && item.otherStores.length > 0) {
+                tdOther.textContent = item.otherStores.join(', ');
+            } else {
+                tdOther.textContent = '없음';
+                tdOther.style.color = '#999';
+            }
+            
+            tr.appendChild(tdName);
+            tr.appendChild(tdBest);
+            tr.appendChild(tdGood);
+            tr.appendChild(tdOther);
+            
+            tbody.appendChild(tr);
+        });
+        
+        document.getElementById('resultTable').style.display = 'table';
+    }
+</script>
+
+</body>
+</html>
