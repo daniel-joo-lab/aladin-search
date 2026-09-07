@@ -7,15 +7,17 @@
     <style>
         body {
             font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 10px;
             background-color: #f9f9f9;
         }
         h1 {
             color: #333;
+            font-size: 24px;
         }
         .container {
             background-color: #fff;
-            padding: 20px;
+            padding: 10px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             max-width: 800px;
@@ -58,15 +60,22 @@
         button:hover {
             opacity: 0.9;
         }
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         table {
             width: 100%;
+            min-width: 550px;
             border-collapse: collapse;
             margin-top: 20px;
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 12px;
+            padding: 10px;
             text-align: left;
+            word-break: keep-all;
         }
         th {
             background-color: #f2f2f2;
@@ -109,18 +118,20 @@
 
     <div id="loading" class="loading">검색 중입니다. 잠시만 기다려주세요...</div>
 
-    <table id="resultTable" style="display:none;">
-        <thead>
-            <tr>
-                <th style="width: 20%;">책 이름</th>
-                <th style="width: 25%;">최상 등급 서점 (가격)</th>
-                <th style="width: 25%;">상 등급 서점 (가격)</th>
-                <th style="width: 30%;">그 외 보유 서점</th>
-            </tr>
-        </thead>
-        <tbody id="resultBody">
-        </tbody>
-    </table>
+    <div class="table-wrapper">
+        <table id="resultTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th style="min-width: 90px; width: 20%;">책 이름</th>
+                    <th style="min-width: 140px; width: 25%;">최상 등급 서점 (가격)</th>
+                    <th style="min-width: 140px; width: 25%;">상 등급 서점 (가격)</th>
+                    <th style="min-width: 150px; width: 30%;">그 외 보유 서점</th>
+                </tr>
+            </thead>
+            <tbody id="resultBody">
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
