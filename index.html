@@ -99,15 +99,10 @@
 
 <div class="container">
     <h1>알라딘 중고서적 검색기</h1>
-    <p>검색하고 싶은 책을 최대 5권까지 입력하세요.</p>
+    <p>검색하고 싶은 책 제목을 한 줄에 하나씩 입력하세요 (최대 20권).</p>
     
     <div id="inputs-container">
-        <!-- 5 input fields -->
-        <div class="input-group"><input type="text" id="book1" placeholder="1. 책 제목 입력"></div>
-        <div class="input-group"><input type="text" id="book2" placeholder="2. 책 제목 입력"></div>
-        <div class="input-group"><input type="text" id="book3" placeholder="3. 책 제목 입력"></div>
-        <div class="input-group"><input type="text" id="book4" placeholder="4. 책 제목 입력"></div>
-        <div class="input-group"><input type="text" id="book5" placeholder="5. 책 제목 입력"></div>
+        <textarea id="bookList" rows="10" placeholder="예시:&#10;노예의 길&#10;세계는 평평하다&#10;직업의 지리학" style="width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical;"></textarea>
     </div>
 
     <div class="buttons">
@@ -136,40 +131,43 @@
 
 <script>
     function saveBooks() {
-        const books = [];
-        for (let i = 1; i <= 5; i++) {
-            books.push(document.getElementById('book' + i).value);
-        }
-        localStorage.setItem('savedAladinBooks', JSON.stringify(books));
+        const text = document.getElementById('bookList').value;
+        localStorage.setItem('savedAladinBooksText', text);
         alert('목록이 저장되었습니다.');
     }
 
     function loadBooks() {
-        const saved = localStorage.getItem('savedAladinBooks');
-        if (saved) {
-            const books = JSON.parse(saved);
-            for (let i = 1; i <= 5; i++) {
-                if (books[i-1] !== undefined) {
-                    document.getElementById('book' + i).value = books[i-1];
-                }
-            }
+        const saved = localStorage.getItem('savedAladinBooksText');
+        if (saved !== null) {
+            document.getElementById('bookList').value = saved;
         } else {
-            alert('저장된 목록이 없습니다.');
+            // 이전 버전(5권 저장) 호환성 지원
+            const oldSaved = localStorage.getItem('savedAladinBooks');
+            if (oldSaved) {
+                try {
+                    const books = JSON.parse(oldSaved);
+                    document.getElementById('bookList').value = books.filter(b => b.trim()).join('\n');
+                } catch(e) {}
+            } else {
+                alert('저장된 목록이 없습니다.');
+            }
         }
     }
 
     // Load automatically when page loads
     window.onload = function() {
-        if (localStorage.getItem('savedAladinBooks')) {
+        if (localStorage.getItem('savedAladinBooksText') || localStorage.getItem('savedAladinBooks')) {
             loadBooks();
         }
     };
 
     async function searchBooks() {
-        const books = [];
-        for (let i = 1; i <= 5; i++) {
-            const val = document.getElementById('book' + i).value.trim();
-            if (val) books.push(val);
+        const text = document.getElementById('bookList').value;
+        let books = text.split('\n').map(b => b.trim()).filter(b => b.length > 0);
+        
+        if (books.length > 20) {
+            alert('최대 20권까지만 검색 가능합니다. 처음 20권만 검색합니다.');
+            books = books.slice(0, 20);
         }
 
         if (books.length === 0) {
